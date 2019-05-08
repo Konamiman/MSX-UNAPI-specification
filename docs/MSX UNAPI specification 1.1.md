@@ -407,7 +407,9 @@ The mappers table is as follows:
 * +3: Maximum segment number of the secondary mapper
 * ...
 
-The table contains from one to four entries depending on how many mappers are present in the system. For each mapper, an entry exists containing the slot number and the maximum available segment number (this will be FEh for 4MB mappers, since segment FFh can't be used, see [Section 2.8](#28-rule-8-avoid-segment-number-ffh)). The end of the table is always indicated by a zero byte (even if all four entries are filled).
+The table contains four entries depending on how many mappers are present in the system. For each mapper, an entry exists containing the slot number and the maximum available segment number (this will be FEh for 4MB mappers, since segment FFh can't be used, see [Section 2.8](#28-rule-8-avoid-segment-number-ffh)). At least the first entry of the table is always used; unused entries have the slot number set to zero.
+
+**NOTE:** Previous versions of this document incorrectly stated _"The end of the table is always indicated by a zero byte (even if all four entries are filled)_".
 
 This table is needed when using the routine that calls a routine in a mapped RAM segment with inline routine identification: the slot number is specified as an index in this table (from 0 for the first entry, up to 3 for the fourth entry). The maximum available segment number is provided to help RAM based implementations to decide in which segment should they be installed; normally they should provide the user the option to decide which segment to use, and default to use the maximum segment number available of one of the available mappers if the user does not provide any segment number. (Note that this applies when running under MSX-DOS 1 only, since MSX-DOS 2 provides its own set of mapper support routines)
 
