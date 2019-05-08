@@ -234,9 +234,9 @@ Every API implementation that is installed on a mapped RAM segment must, at inst
 
 ### 2.8. Rule 8: Avoid segment number FFh
 
-An API implementation that installs on a mapped RAM segment must NOT be installed on a segment whose number is FFh (this is the last existing segment number on 4MByte RAM slots). This is necessary because the discovery procedure will use #FF as a fictitious segment number when the API implementation resides in ROM (see [Section 3.2](#32-steps-of-the-discovery-procedure)).
+An API implementation that installs on a mapped RAM segment must NOT be installed on a segment whose number is FFh (this is the last existing segment number on 4MByte RAM slots). This is necessary because the discovery procedure will use FFh as a fictitious segment number when the API implementation resides in ROM (see [Section 3.2](#32-steps-of-the-discovery-procedure)).
 
-When using the mapper support routines provided by MSX-DOS 2 to allocate memory, this is not an issue, since these routines will never allocate segment #FF even when it is available. However, when running under DOS 1 and manually selecting the segment for installation, care must be taken to not use segment FFh.
+When using the mapper support routines provided by MSX-DOS 2 to allocate memory, this is not an issue, since these routines will never allocate segment FFh even when it is available. However, when running under DOS 1 and manually selecting the segment for installation, care must be taken to not use segment FFh.
 
 ### 2.9. Optional rule 9: Give your routines a meaningful name
 
@@ -435,7 +435,7 @@ For this reason, the concept of specificationless UNAPI applications is introduc
 
 3. Since specificationless application do not conform to any API specification, the API specification version number provided by the API information routine (see [Section 2.5](#25-rule-5-the-api-information-routine--the-implementation-name-and-version)) does not make sense. This routine should return this value as Version 0.0 (that is, DE=0).
 
-Apart from these differences, the whole set of rules enumerated in this document still apply, including the discovery procdedure and the rules that refer to routine registers usage.
+Apart from these differences, the whole set of rules enumerated in this document still apply, including the discovery procedure and the rules that refer to routine registers usage.
 
 Specificationless applications will tipically take the form of TSRs that install on RAM, but this is not mandatory and ROM specificationless applications are allowed as well.
 

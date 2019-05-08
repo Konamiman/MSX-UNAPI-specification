@@ -1,0 +1,15 @@
+*.out
+*.lst
+*.sym
+*.rom
+*.com
+*.dat
+*.rel
+*.lib
+*.map
+*.noi
+*.ihx
+*.lk
+asm.h
+eth.asm
+tcpip.asm
