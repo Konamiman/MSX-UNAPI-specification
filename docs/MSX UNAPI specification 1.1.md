@@ -421,7 +421,7 @@ Having a RAM helper installed is mandatory when installing API implementations w
 
 ### 4.1. Notes on the routine for calling a routine with inline routine identification
 
-The routine for calling a routine with inline routine identification is intended for helping in the process of patching hooks (mainly the EXTBIO hook) to implementations that do not otherwise need to allocate or modify RAM on page 3. If the implementation has the code for the discovery procedure available at an entry that belongs to a jump table that starts at address #4000 (the start of the segment where it resides), and saves the previous state of the hook in the segment itself, then it is enough to set up the contents of the hook with the five bytes of code needed to call the routine (one CALL and two DB). No further action is required on page 3 at install time.
+The routine for calling a routine with inline routine identification is intended for helping in the process of patching hooks (mainly the EXTBIO hook) to implementations that do not otherwise need to allocate or modify RAM on page 3. If the implementation has the code for the discovery procedure available at an entry that belongs to a jump table that starts at address 4000h (the start of the segment where it resides), and saves the previous state of the hook in the segment itself, then it is enough to set up the contents of the hook with the five bytes of code needed to call the routine (one CALL and two DB). No further action is required on page 3 at install time.
 
 Note that a double indirection is needed here: a CALL is made to a memory location which in turn contains a CALL to the real routine. The implementation of this routine must increase the stack pointer by two, so that execution resumes at the address placed after the first call, ignoring whatever is placed after the two DB directives. It is necessary to implement it this way, in order to be able to place a call to this routine in the EXTBIO hook, which is just five bytes long.
 
@@ -454,7 +454,7 @@ The original text version of this document was produced using xml2rfc v1.34 (of 
 * Version 0.3 
 
   * "The big picture" section ([Section 1.5](#15-sample-scenario)) has been renamed to "Sample scenario"
-  * Added the routine to call address #4010 in the "The RAM helper" section ([Section 4](#4-the-ram-helper))
+  * Added the routine to call address 4010h in the "The RAM helper" section ([Section 4](#4-the-ram-helper))
 
 * Version 0.4
 

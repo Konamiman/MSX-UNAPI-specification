@@ -680,7 +680,7 @@ Is there a query in progress?
     No: Abort the current query
 Try to parse host name as an IP address
 Success?
-  Yes: Cache the result so that [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result) will return it
+  Yes: Cache the result so that TCPIP_DNS_S will return it
        Return ERR_OK, B=1, and the address in HL,DE
 B:1 was set?
   Yes: Return ERR_INV_IP
@@ -688,14 +688,14 @@ Are the local hosts file mechanism capability, and the querying DNS servers capa
   Yes: Return ERR_NOT_IMP
 Is the local hosts file mechanism supported?
   Yes: Is the host name in the local hosts file?
-    Yes: Cache the result so that [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result) will return it
+    Yes: Cache the result so that TCPIP_DNS_S will return it
          Return ERR_OK, B=2, and the address in HL,DE
 Is DNS querying supported?
-  No: Cache a "Host name not found error" so that [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result) will return it (see description of [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result))
+  No: Cache a "Host name not found error" so that TCPIP_DNS_S will return it (see description of TCPIP_DNS_S)
       Return ERR_OK, B=0
 Is DNS cache supported?
   Yes: Is the host name in the DNS cache?
-    Yes: Cache the result so that [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result) will return it
+    Yes: Cache the result so that TCPIP_DNS_S will return it
          Return ERR_OK, B=2, and the address in HL,DE
 Is network available?
   No: Return ERR_NO_NETWORK
@@ -2100,7 +2100,7 @@ whenever a timer interrupt occurs. Thus, it is enough to continuously look at th
 value until it changes. Here is a sample implementation of this concept:
 
 ```
-TIMER: equ #FC9E
+TIMER: equ 0FC9Eh
 
 WAIT:
     ei

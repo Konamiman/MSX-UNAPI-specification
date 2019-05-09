@@ -22,7 +22,7 @@ The complete MSX-UNAPI specification may seem complicated at first glance, but i
 
 * An **API implementation** is the realization in code of an API specification. There may be several implementation of the same API specification, and since all of them implement the same set of routines, they are interchangeable. Each implementation has a short name that serves to distinguish it from other implementations.
 
-  For example, "ObsoNET BIOS" and "Dumas BIOS" could be the names of two implementations of the API whose identifier is ETHERNET. A TCP/IP stack prepared to deal with the ETHERNET API could work with both implementations.
+  For example, "ObsoNET BIOS" and "DenyoNet BIOS" could be the names of two implementations of the API whose identifier is ETHERNET. A TCP/IP stack prepared to deal with the ETHERNET API could work with both implementations.
 
 * The MSX-UNAPI specification provides a set of minimal rules that must be followed by all compliant API specifications and implementations. This is done to ease the development of software that make use of API implementations.
 

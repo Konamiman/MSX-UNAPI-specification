@@ -6,7 +6,7 @@ This repository contains the following documents:
 
 * [Introduction to MSX-UNAPI](docs/Introduction%20to%20MSX-UNAPI.md): You might want to start here to get a high-level overview of what UNAPI is and how it works.
 
-* [MSX-UNAPI specification](docs/MSX%20UNAPI%20specification%201.1.md): The full specification document, covering all the details on how to design an API, how to implement it, and how to discover and consume it from a client application.
+* [MSX-UNAPI specification](docs/MSX%20UNAPI%20specification%201.1.md): The full core specification document, covering all the details on how to design an API, how to implement it, and how to discover and consume it from a client application.
 
 * [Ethernet UNAPI specification](docs/Ethernet%20UNAPI%20specification%201.1.md): The specification of an API for Ethernet cards.
 
