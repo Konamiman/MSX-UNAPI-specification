@@ -50,9 +50,11 @@ This document describes MSX-UNAPI, a standard procedure for defining, discoverin
 
 [5. Specificationless UNAPI applications](#5-specificationless-unapi-applications)
 
-[Appendix A. Acknowledgements](#appendix-a-acknowledgements)
+[Appendix A. The standard mapper support routines](#appendix-a-the-standard-mapper-support-routines)
 
-[Appendix B. Document version history](#appendix-b-document-version-history)
+[Appendix B. Acknowledgements](#appendix-b-acknowledgements)
+
+[Appendix C. Document version history](#appendix-c-document-version-history)
 
 ## 1. Introduction
 
@@ -236,7 +238,7 @@ Every API implementation that is installed on a mapped RAM segment must, at inst
 
 An API implementation that installs on a mapped RAM segment must NOT be installed on a segment whose number is FFh (this is the last existing segment number on 4MByte RAM slots). This is necessary because the discovery procedure will use FFh as a fictitious segment number when the API implementation resides in ROM (see [Section 3.2](#32-steps-of-the-discovery-procedure)).
 
-When using the mapper support routines provided by MSX-DOS 2 to allocate memory, this is not an issue, since these routines will never allocate segment FFh even when it is available. However, when running under DOS 1 and manually selecting the segment for installation, care must be taken to not use segment FFh.
+When using [the standard mapper support routines](#appendix-a-the-standard-mapper-support-routines), this is not an issue, since these routines will never allocate segment FFh even when it is available. However, when that's not the case and the segment for installation must be manually selected, care must be taken to not use segment FFh.
 
 ### 2.9. Optional rule 9: Give your routines a meaningful name
 
@@ -344,19 +346,21 @@ Note that given the way the discovery procedure is designed, the implementations
 
 Once an API implementation has been discovered, it is easy for client software to invoke the API routines if the API entry point is located at page 3 (using direct calls) or in a ROM slot (using inter-slot calls, for example via the BIOS function CALSLT). However, for API implementations installed in a mapped RAM segment, it is not so easy to invoke the API entry point. MSX-DOS 2 provides system routines to execute code placed on an arbitrary segment, but the client code must still ensure that the appropriate RAM slot is switched on page 1. For MSX-DOS 1 it is even worse, since no mapper support routines are provided.
 
-To solve this issue, and in order to ease the development of client software, this specification includes the concept of the RAM helper. The RAM helper consists of a set of routines and a mappers table that are placed at system RAM on page 3, each having an entry point in the same area. Two of the routines allow to easily perform inter-segment calls, while the other allows to perform inter-segment data reads.
+To solve this issue, and in order to ease the development of client software, this specification includes the concept of the RAM helper. The RAM helper consists of a set of routines and an optional mappers table that are placed at system RAM on page 3, each having an entry point in the same area. Two of the routines allow to easily perform inter-segment calls, while the other allows to perform inter-segment data reads.
 
 To check for the presence of the RAM helper, and to obtain the address of its routines, EXTBIO must be called with DE=2222h, HL=0, and A=FFh. If the RAM helper is not installed, then HL=0 at output; otherwise the following register values will be returned:
 
 * HL = Address of a jump table in page 3
-* BC = Address of a mappers table in page 3
+* BC = Address of the reduced mappers table in page 3 (zero if not provided)
 * A = Number of entries in the jump table
+
+The reduced mappers table **must** be provided when [the standard mapper support routines](#appendix-a-the-standard-mapper-support-routines) are **not** present, but is optional otherwise, since the standard mapper support routines already provide a suitable mappers table. When the RAM helper does not provide a mappers table, the value returned in BC by the EXTBIO call must be zero. Client applications should rely on a mappers table being provided by a RAM helper only when mapper support routines are **not** present.
 
 The value returned in A is always 3 as per this specification. This value is provided because future specification versions may define additional routines, and so client applications may detect which specification version the installed RAM helper conforms to.
 
 The jump table routines are as follow:
 
-#### +0: Call a routine in a mapped RAM segment
+#### +0: CALL_MAP: Call a routine in a mapped RAM segment
 
 * Input:
   * IYh = Slot number
@@ -366,7 +370,7 @@ The jump table routines are as follow:
 * Output:
   * AF, BC, DE, HL, IX, IY = Parameters returned from the target routine
 
-#### +3: Read a byte from a RAM segment
+#### +3: RD_MAP: Read a byte from a RAM segment
 
 * Input:
   * A = Slot number
@@ -376,7 +380,7 @@ The jump table routines are as follow:
   * A = Data readed from the specified address
   * F, BC, DE, HL, IX, IY preserved
 
-#### +6: Call a routine in a mapped RAM segment, with inline routine identification
+#### +6: CALL_MAPI: Call a routine in a mapped RAM segment, with inline routine identification
 
 * Input:
   * AF, BC, DE, HL = Parameters for the target routine
@@ -388,18 +392,18 @@ The routine is to be called as follows:
     CALL CALLSEG
 
     CALLSEG:
-      CALL <routine address>
+      CALL <address of CALL_MAPI>
       DB &Bmmeeeeee
       DB <segment number>
       ;no RET is needed here
 
  where
 
-* `mm` is the mapper slot, as an index (0 to 3) in the mappers table
+* `mm` is the mapper slot, as an index (0 to 3) in either the mappers table provided by [the standard mapper support routines](#appendix-a-the-standard-mapper-support-routines) or the reduced mappers table provided by the RAM helper, whichever is available.
 
 * `eeeeee` is the routine to be called, as an index (0 to 63) of a jump table that starts at address 4000h of the segment. That is, 0 means 4000h, 1 means 4003h, 2 means 4006h, etc.
 
-The mappers table is as follows:
+The reduced mappers table is as follows:
 
 * +0: Slot number of the primary mapper
 * +1: Maximum segment number of the primary mapper
@@ -407,11 +411,13 @@ The mappers table is as follows:
 * +3: Maximum segment number of the secondary mapper
 * ...
 
-The table contains four entries depending on how many mappers are present in the system. For each mapper, an entry exists containing the slot number and the maximum available segment number (this will be FEh for 4MB mappers, since segment FFh can't be used, see [Section 2.8](#28-rule-8-avoid-segment-number-ffh)). At least the first entry of the table is always used; unused entries have the slot number set to zero.
+The table contains at least one and at most four entries, one for each of the memory mappers present in the system. Each entry contains the slot number and the maximum available segment number (this will be FEh for 4MB mappers, since segment FFh can't be used, see [Section 2.8](#28-rule-8-avoid-segment-number-ffh)). There's a zero byte after the last entry.
 
-**NOTE:** Previous versions of this document incorrectly stated _"The end of the table is always indicated by a zero byte (even if all four entries are filled)_".
+The reduced mappers table is needed when [the standard mapper support routines](#appendix-a-the-standard-mapper-support-routines) are not present and has two uses:
 
-This table is needed when using the routine that calls a routine in a mapped RAM segment with inline routine identification: the slot number is specified as an index in this table (from 0 for the first entry, up to 3 for the fourth entry). The maximum available segment number is provided to help RAM based implementations to decide in which segment should they be installed; normally they should provide the user the option to decide which segment to use, and default to use the maximum segment number available of one of the available mappers if the user does not provide any segment number. (Note that this applies when running under MSX-DOS 1 only, since MSX-DOS 2 provides its own set of mapper support routines)
+1. It allows to translate mapper indexes to mapper slot numbers when using CALL_MAPI.
+
+2. It informs implementation installers about how many mappers are present in the system and how many segments each one has, without the need to manually perform memory tests. Normally these installers should provide the user the option to decide which segment to use, and default to use the maximum segment number available of one of the available mappers if the user does not provide any segment number. (Note that this if the standard mapper support routines are available, ALL_SEG should be used to properly allocate a segment instead)
 
 The installation code for every API implementation that is to be installed on a mapped RAM segment must check if the RAM helper is installed in the system (by using the procedure based on a EXTBIO call described above). If not, the implementation installer has two options: either install a RAM helper by itslef, appropriately patching the EXTBIO hook so that the RAM helper can be discovered by using the explained procedure; or refuse to install, thus requiring the user to previously install a RAM helper in order to install that implementation. This way, client applications can always safely assume that the RAM helper is installed if implementations that reside in mapped RAM are installed.
 
@@ -441,11 +447,191 @@ Apart from these differences, the whole set of rules enumerated in this document
 
 Specificationless applications will tipically take the form of TSRs that install on RAM, but this is not mandatory and ROM specificationless applications are allowed as well.
 
-## Appendix A. Acknowledgements
+## Appendix A. The standard mapper support routines
+
+Section ["The RAM helper"](#4-the-ram-helper) mentions the _standard mapper support routines_. These are a set of routines (plus a mappers table) that allow a system-wide management of memory mapper segments, so that multiple applications can allocate and use mapped memory without conflicts.
+
+Standard mapper support routines are an integral part of MSX-DOS 2, and as such, they are explained in the _MSX-DOS 2 Program Interface Specification_ document. This section provides a "cheat sheet" of these routines for conveniece.
+
+### The mappers table
+
+To get the mappers table you must call EXTBIO (`0FFCAh`) with the following input registers: `A=0`, `D=4`, `E=1`. If the mapper support routines are available, you'll get the following output:
+
+* A = Slot number of primary mapper - if zero, mapper support routines are not available
+* DE = Preserved
+* HL = Start address of mapper variable table
+
+The mappers table has one entry for the primary mapper, plus additional entries for other mappers present in the system. Each entry has the following format:
+
+* +0: Slot number of the mapper
+* +1: Total number of 16k RAM segments
+* +2: Number of free 16k RAM segments
+* +3: Number of 16k RAM segments allocated to the system
+* +4: Number of 16k RAM segments allocated to the user
+* +5...+7: Unused, always zero
+
+A zero byte follows the last entry in the table.
+
+### The mapper support routines
+
+To get the starting address of the mapper support routines you must call EXTBIO (`0FFCAh`) with the following input registers: `A=0`, `D=4`, `E=2`. If the mapper support routines are available, you'll get the following output:
+
+* A = Total number of memory mapper segments - if zero, mapper support routines are not available
+* B = Slot number of primary mapper
+* C = Number of free segments of primary mapper
+* DE = Preserved
+* HL = Start address of jump table
+
+The jump table is as follows:
+
+| Offset | Routine | Purpose |
+|---|---|---|
+|+0h | ALL_SEG | Allocate a 16k segment |
+|+3h | FRE_SEG | Free a 16k segment |
+|+6h | RD_SEG |  Read byte from segment |
+|+9h | WR_SEG |  Write byte to a segment |
+|+Ch | CAL_SEG | Inter-segment call, address in registers |
+|+Fh | CALLS |   Inter-segment call, address in line after the call instruction |
+|+12h |PUT_PH |  Put segment into the page that contains address HL |
+|+15h |GET_PH |  Get current segment for the page that contains address HL |
+|+18h |PUT_P0 |  Put segment into page 0 |
+|+1Bh |GET_P0 |  Get current segment for page 0 |
+|+1Eh |PUT_P1 |  Put segment into page 1 |
+|+21h |GET_P1 |  Get current segment for page 1 |
+|+24h |PUT_P2 |  Put segment into page 2 |
+|+27h |GET_P2 |  Get current segment for page 2 |
+|+2Ah |PUT_P3 |  Not supported since page 3 must never be changed, does nothing |
+|+2Dh |GET_P3 |  Get current segment for page 3 |
+
+Notes:
+
+* Except for ALL_SEG and FRE_SEG, the routines don't check that the supplied segment number actually exist.
+* None of the routines do any slot switching, so the required mapper slot must be already visible in the appropriate page. For RD_SEG and WR_SEG this is always page 2.
+* The segment in page 3 is never changed by these routines.
+
+
+#### ALL_SEG: Allocate a 16k segment
+
+* Input:
+  * A = 0: allocate user segment
+  * A = 1: allocate system segment
+  * B = 0: allocate primary mapper
+  * B != 0: allocate FxxxSSPP slot address (primary mapper, if 0):
+    * xxx = 000: allocate specified slot only
+    * xxx = 001: allocate other slots than specified
+    * xxx = 010: try to allocate specified slot and, if it failed, try another slot (if any)
+    * xxx = 011 try to allocate other slots than specified and, if it failed, try specified slot
+
+* Output:
+  * Carry set: no free segments
+  * Carry clear: segment allocated
+  * A: new segment number
+  * B: slot address of mapper slot (0 if called as B=0)
+
+In MSX-DOS 2 user segments are automatically freed when the program allocating them terminates, while system segments must be freed explicitly.
+
+
+#### FRE_SEG: Free a 16k segment
+
+* Input:
+  * A: segment number to free
+  * B = 0: primary mapper
+  * B != 0: mapper other than primary
+
+* Output:
+  * Carry set: error
+  * Carry clear: segment freed OK
+
+
+#### RD_SEG: Read byte from segment
+
+* Input:
+  * A: segment number to read from
+  * HL: address within this segment
+
+* Output:
+  * A: value of byte at that address
+  * All other registers preserved
+
+
+#### WR_SEG: Write a byte to a segment
+
+* Input:
+  * A: segment number to write to
+  * HL: address within this segment
+  * E: value to write
+  
+* Output: none, corrupts A
+
+
+#### CAL_SEG: Inter-segment call, address in registers
+
+* Input:
+  * IYh: segment number to be called
+  * IX = address to call
+  * AF, BC, DE, HL passed to called routine
+
+* Output:  
+  * AF, BC, DE, HL, IX and IY returned from called routine, all others corrupted
+
+
+#### CALLS: Inter-segment call, address in line after the call instruction
+
+* Input:
+  * AF, BC, DE, HL passed to called routine, other registers corrupted
+
+* Output:  
+  * AF, BC, DE, HL, IX and IY returned from called routine, all others corrupted
+
+This routine must be used as follows:
+
+```
+CALL  CALLS
+DB    SEGMENT
+DW    ADDRESS
+```
+
+#### PUT_PH: Put segment into the page that contains address HL
+
+* Input:
+  * HL = any address within the page that will be changed
+  * A = segment number
+
+* Output: none, all registers preserved
+
+
+#### GET_PH: Get current segment for the page that contains address HL
+
+* Input:
+  * HL = any address within the page to be checked
+
+* Output:
+  * A = segment number
+  * All other registers preserved
+
+
+#### PUT_P0/1/2/3: Put segment into page 0/1/2/3
+
+* Input:
+  * A = segment number
+
+* Output: none, all registers preserved
+
+
+#### GET_P0/1/2/3: Get current segment for page 0/1/2/3
+
+* Input: none
+
+* Output:
+  * A = segment number
+  * All others preserved
+
+
+## Appendix B. Acknowledgements
 
 The original text version of this document was produced using xml2rfc v1.34 (of http://xml.resource.org/) from a source in RFC-2629 XML format.
 
-## Appendix B. Document version history
+## Appendix C. Document version history
 
 * Version 0.2
 
@@ -485,3 +671,9 @@ The original text version of this document was produced using xml2rfc v1.34 (of 
     * The routine for invoking a routine in the segment address 4010h has been replaced by a routine for invoking a routine in a jump table of up to 64 entries.
      
     * A mappers table is now generated in addition to the jump table.
+
+* Version 1.2
+
+    * The mappers table provided by the RAM helper is now mandatory when the standard mapper support routines are **not** present, optional otherwise.
+
+    * Added [Appendix A. The standard mapper support routines](#appendix-a-the-standard-mapper-support-routines)
