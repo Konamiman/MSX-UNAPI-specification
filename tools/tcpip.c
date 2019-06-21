@@ -1,5 +1,5 @@
 /* TCP/IP UNAPI implementations control program
-   By Konamiman 5/2010
+   By Konamiman 6/2019
    
    Compilation command line:
    
@@ -8,7 +8,7 @@
 
    The resulting file, eth.com, is a MSX-DOS executable.
    
-   Get the required extra files (asm.h, asm.lib, crt0msx_msxdos_advanced.rel, printf_simple.rel, putchar_msxdos.rel, asm.lib) here:
+   Get the required extra files (asm.h, asm.lib, crt0msx_msxdos_advanced.rel, printf_simple.rel, putchar_msxdos.rel) here:
    https://www.konamiman.com/msx/msx-e.html#sdcc
 */
 
@@ -61,8 +61,8 @@ enum IpAddresses {
 };
 
 const char* strPresentation=
-    "TCP/IP UNAPI control program 1.0\r\n"
-    "By Konamiman, 5/2010\r\n"
+    "TCP/IP UNAPI control program 1.1\r\n"
+    "By Konamiman, 6/2019\r\n"
     "\r\n";
 
 const char* strUsage=
@@ -104,7 +104,7 @@ byte mustChangeTOS = 0;
 byte newTOS;
 byte mustChangePingReply = 0;
 byte newPingReply;
-uint specVersion;
+byte isSpec11;
 
 
 // I know, these should be on a tcpip.h
@@ -242,6 +242,8 @@ void PrintImplementationName()
     byte readChar;
     byte versionMain;
     byte versionSec;
+    byte specVersionMain;
+    byte specVersionSec;
     uint nameAddress;
     
     print("Implementation name: ");
@@ -249,9 +251,11 @@ void PrintImplementationName()
     UnapiCall(&codeBlock, UNAPI_GET_INFO, &regs, REGS_NONE, REGS_MAIN);
     versionMain = regs.Bytes.B;
     versionSec = regs.Bytes.C;
+    specVersionMain = regs.Bytes.D;
+    specVersionSec = regs.Bytes.E;
     nameAddress = regs.UWords.HL;
     
-    specVersion = regs.UWords.DE;   //Also, save specification version implemented
+    isSpec11 = regs.UWords.DE >= 0x0101;
     
     while(1) {
         readChar = UnapiRead(&codeBlock, nameAddress);
@@ -262,7 +266,7 @@ void PrintImplementationName()
         nameAddress++;
     }
     
-    printf(" v%u.%u\r\n\r\n", versionMain, versionSec);
+    printf(" v%u.%u\r\nTCP/IP UNAPI specification version: %u.%u\r\n\r\n", versionMain, versionSec, specVersionMain, specVersionSec);
 }
 
 
@@ -313,8 +317,13 @@ void PrintYesNoBit(char* message, uint flags, int bitIndex)
 
 void DoShowFeatures()
 {
+    uint features;
+    byte linkLevelProto;
+
     regs.Bytes.B = 1;
     UnapiCall(&codeBlock, TCPIP_GET_CAPAB, &regs, REGS_MAIN, REGS_MAIN);
+    features = regs.UWords.DE;
+    linkLevelProto = regs.Bytes.B;
     
     print("Capabilities:\r\n\r\n");
     
@@ -327,36 +336,65 @@ void DoShowFeatures()
     PrintYesNoBit("Send and receive TCP urgent data", regs.UWords.HL, 6);
     PrintYesNoBit("Explicitly set the PUSH bit when sending TCP data", regs.UWords.HL, 7);
     PrintYesNoBit("Send data to a TCP connection before the ESTABLISHED state is reached", regs.UWords.HL, 8);
-    PrintYesNoBit("Flush the output buffer of a TCP connection", regs.UWords.HL, 9);
+    PrintYesNoBit("Discard the output buffer of a TCP connection", regs.UWords.HL, 9);
     PrintYesNoBit("Open UDP connections", regs.UWords.HL, 10);
     PrintYesNoBit("Open raw IP connections", regs.UWords.HL, 11);
-    PrintYesNoBit("Explicitly set the TTL and TOS for outgoing datagrams", regs.UWords.HL, 12);
+    PrintYesNoBit("Explicitly set the TTL and ToS for outgoing datagrams", regs.UWords.HL, 12);
     PrintYesNoBit("Explicitly set the automatic reply to PINGs on or off", regs.UWords.HL, 13);
-    PrintYesNoBit("Automatically obtain the IP addresses", regs.UWords.HL, 14);
+    if(!isSpec11) {
+        PrintYesNoBit("Automatically obtain the IP addresses", regs.UWords.HL, 14);
+    }
 
-    print("Features:\r\n\r\n");
+    if(isSpec11) {
+        PrintYesNoBit("Get the TTL and ToS for outgoing datagrams", regs.UWords.HL, 15);
+
+        regs.Bytes.B = 4;
+        UnapiCall(&codeBlock, TCPIP_GET_CAPAB, &regs, REGS_MAIN, REGS_MAIN);
+
+        PrintYesNoBit("Automatically obtain the local IP address, subnet mask and default gateway", regs.UWords.HL, 0);
+        PrintYesNoBit("Automatically obtain the IP addresses of the DNS servers", regs.UWords.HL, 1);
+        PrintYesNoBit("Manually set the local IP address", regs.UWords.HL, 2);
+        PrintYesNoBit("Manually set the peer IP address", regs.UWords.HL, 3);
+        PrintYesNoBit("Manually set the subnet mask IP address", regs.UWords.HL, 4);
+        PrintYesNoBit("Manually set the default gateway IP address", regs.UWords.HL, 5);
+        PrintYesNoBit("Manually set the primary DNS server IP address", regs.UWords.HL, 6);
+        PrintYesNoBit("Manually set the secondary DNS server IP address", regs.UWords.HL, 7);
+        PrintYesNoBit("Use TLS in active TCP connections", regs.UWords.HL, 8);
+        PrintYesNoBit("Use TLS in passve TCP connections", regs.UWords.HL, 9);
+    }
+
+    print("\r\nFeatures:\r\n\r\n");
     
-    PrintYesNoBit("Physical link is point to point", regs.UWords.DE, 0);
-    PrintYesNoBit("Physical link is wireless", regs.UWords.DE, 1);
-    PrintYesNoBit("Connection pool is shared by TCP, UDP and raw IP", regs.UWords.DE, 2);
-    PrintYesNoBit("Checking network state is time-expensive", regs.UWords.DE, 3);
-    PrintYesNoBit("The TCP/IP handling code is assisted by external hardware", regs.UWords.DE, 4);
-    PrintYesNoBit("The loopback address (127.x.x.x) is supported", regs.UWords.DE, 5);
-    PrintYesNoBit("A host name resolution cache is implemented", regs.UWords.DE, 6);
-    PrintYesNoBit("IP datagram fragmentation is supported", regs.UWords.DE, 7);
-    PrintYesNoBit("User timeout suggested when opening a TCP connection is actually applied", regs.UWords.DE, 8);
+    PrintYesNoBit("Physical link is point to point", features, 0);
+    PrintYesNoBit("Physical link is wireless", features, 1);
+    PrintYesNoBit("Connection pool is shared by TCP, UDP and raw IP", features, 2);
+    PrintYesNoBit("Checking network state is time-expensive", features, 3);
+    PrintYesNoBit("The TCP/IP handling code is assisted by external hardware", features, 4);
+    PrintYesNoBit("The loopback address (127.x.x.x) is supported", features, 5);
+    PrintYesNoBit("A host name resolution cache is implemented", features, 6);
+    PrintYesNoBit("IP datagram fragmentation is supported", features, 7);
+    PrintYesNoBit("User timeout suggested when opening a TCP connection is actually applied", features, 8);
+
+    if(isSpec11) {
+        PrintYesNoBit("TTL can be specified for ICMP echo messages (PINgs)", features, 9);
+        PrintYesNoBit("Querying a DNS server is a blocking operation", features, 10);
+        PrintYesNoBit("Opening a TCP connection is a blocking operation", features, 11);
+        PrintYesNoBit("Support for veryfying the server certificate on active TCP connections", features, 12);
+    }
     
     print("\r\nLink level protocol: ");
-    if(regs.Bytes.B == 0) {
+    if(linkLevelProto == 0) {
         print("Unespecified\r\n");
-    } else if(regs.Bytes.B == 1) {
+    } else if(linkLevelProto == 1) {
         print("SLIP\r\n");
-    } else if(regs.Bytes.B == 2) {
+    } else if(linkLevelProto == 2) {
         print("PPP\r\n");
-    } else if(regs.Bytes.B == 3) {
+    } else if(linkLevelProto == 3) {
         print("Ethernet\r\n");
+    } else if(linkLevelProto == 4) {
+        print("WiFi\r\n");
     } else {
-        printf("Unknown (%i)\r\n", regs.Bytes.B);
+        printf("Unknown (%i)\r\n", linkLevelProto);
     }
     
     regs.Bytes.B = 2;
@@ -424,10 +462,13 @@ void DoShowStatus()
         print("All\r\n");
     }
     
+    print("\r\n");
     regs.Bytes.B = 0;
     UnapiCall(&codeBlock, TCPIP_CONFIG_TTL, &regs, REGS_MAIN, REGS_MAIN);
-    printf("\r\nTTL for outgoing datagrams: %i\r\n", regs.Bytes.D);
-    printf("ToS for outgoing datagrams: %i\r\n", regs.Bytes.E);
+    if(regs.Bytes.A == ERR_OK) {
+        printf("TTL for outgoing datagrams: %i\r\n", regs.Bytes.D);
+        printf("ToS for outgoing datagrams: %i\r\n", regs.Bytes.E);
+    }
     
     regs.Bytes.B = 0;
     UnapiCall(&codeBlock, TCPIP_CONFIG_PING, &regs, REGS_MAIN, REGS_MAIN);

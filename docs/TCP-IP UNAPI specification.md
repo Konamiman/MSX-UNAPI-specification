@@ -64,7 +64,7 @@
 
 [4.5.6. TCPIP_TCP_RCV: Receive data from a TCP connection](#456-tcpip_tcp_rcv-receive-data-from-a-tcp-connection)
 
-[4.5.7. TCPIP_TCP_FLUSH: Flush the output buffer of a TCP connection](#457-tcpip_tcp_flush-flush-the-output-buffer-of-a-tcp-connection)
+[4.5.7. TCPIP_TCP_DISCARD: Discard data in the output buffer of a TCP connection](#457-tcpip_tcp_discard-discard-data-in-the-output-buffer-of-a-tcp-connection)
 
 [4.6. Raw IP connections related routines](#46-raw-ip-connections-related-routines)
 
@@ -189,7 +189,7 @@ supported capabilities, see the routines descriptions themselves.
 
 The API identifier for the specification described in this document is: "TCP/IP" (without
 the quotes). Remember that per the UNAPI specification, API identifiers are caseinsensitive.
-The TCP/IP API version described in this document is 1.0. This is the API specification
+The TCP/IP API version described in this document is 1.1. This is the API specification
 version that the mandatory implementation information routine must return in DE (see
 [UNAPI_GET_INFO](#411-unapi_get_info-obtain-the-implementation-name-and-version)).
 
@@ -271,6 +271,7 @@ This routine never fails. ERR_OK is always returned.
     * 1: Capabilities and features flags, link level protocol
     * 2: Connection pool size and status
     * 3: Maximum datagram size allowed
+    * 4: Second set of capabilities and features flags
 
 * Output:
     *  A = Error code
@@ -295,6 +296,11 @@ This routine never fails. ERR_OK is always returned.
     * HL = Maximum incoming datagram size supported
     * DE = Maximum outgoing datagram size supported
 
+    When information block 4 requested:
+
+    * HL = Second set of capabilities flags
+    * DE = Second set of features flags (currently unused, always zero)
+
 As explained in ["Modularity"](#13-modularity), the TCP/IP UNAPI specification is modular, meaning that
 implementators may choose to include only a certain funcionality subset in the
 developed implementations. This is the routine that gives information about the
@@ -312,8 +318,8 @@ to invoke any of the associated routines will result in the routine returning a
 ERR_NOT_IMP error code. (Some routines depend on a given capability or not depending
 on the input parameters; more details are given on each routine description).
 
-The capabilities flags are the following. Bit 0 is LSB of register L, bit 8 is LSB of register
-H.
+The first set of capabilities flags (returned whe information block 1 is requested) is as follows.
+Bit 0 is LSB of register L, bit 8 is LSB of register H.
 
 * Bit 0: Send ICMP echo messages (PINGs) and retrieve the answers
 * Bit 1: Resolve host names by querying a local hosts file or database
@@ -324,13 +330,30 @@ H.
 * Bit 6: Send and receive TCP urgent data
 * Bit 7: Explicitly set the PUSH * Bit when sending TCP data
 * Bit 8: Send data to a TCP connection before the ESTABLISHED state is reached
-* Bit 9: Flush the output buffer of a TCP connection
+* Bit 9: Discard data in the output buffer of a TCP connection
 * Bit 10: Open UDP connections
 * Bit 11: Open raw IP connections
-* Bit 12: Explicitly set the TTL and TOS for outgoing datagrams
+* Bit 12: Explicitly set the TTL and ToS for outgoing datagrams
 * Bit 13: Explicitly set the automatic reply to PINGs on or off
-* Bit 14: Automatically obtain the IP addresses, by using DHCP or an equivalent protocol
-* Bit 15: Unused
+* Bit 14: Automatically obtain the IP addresses, by using DHCP or an equivalent protocol (deprecated)
+* Bit 15: Get the TTL and ToS for outgoing datagrams
+
+The second set of capabilities flags (returned whe information block 4 is requested) is as follows.
+
+* Bit 0: Automatically obtain the local IP address, subnet mask and default gateway, by using DHCP or an equivalent protocol
+* Bit 1: Automatically obtain the IP addresses of the DNS servers, by using DHCP or an equivalent protocol
+* Bit 2: Manually set the local IP address
+* Bit 3: Manually set the peer IP address
+* Bit 4: Manually set the subnet mask IP address
+* Bit 5: Manually set the default gateway IP address
+* Bit 6: Manually set the primary DNS server IP address
+* Bit 7: Manually set the secondary DNS server IP address
+* Bit 8: Use [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) in TCP active connections
+* Bit 9: Use [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) in TCP passive connections
+* Bits 10-15: Unused
+
+Bit 14 of the primary set is deprecated and kept for compatibility with version 1.0 of the specification.
+It must be set if at least one of bits 0 and 1 of the secondary set is set.
 
 The **features flags** provide additional information about the internal working
 parameters of the implementation. These parameters have no direct influence on the
@@ -338,7 +361,8 @@ specification routines (no ERR_NOT_IMP error will ever be returned as a result o
 these features being missing), but client applications may indirectly make use of this
 information to decide how to behave.
 
-The features flags are the following. Bit 0 is LSB of register E, bit 8 is LSB of register D.
+The first (and currently only) set of features flags (returned whe information block 1 is requested) is as follows.
+Bit 0 is LSB of register E, bit 8 is LSB of register D.
 
 * Bit 0: Physical link is point to point
 * Bit 1: Physical link is wireless
@@ -349,7 +373,15 @@ The features flags are the following. Bit 0 is LSB of register E, bit 8 is LSB o
 * Bit 6: A host name resolution cache is implemented
 * Bit 7: IP datagram fragmentation is supported
 * Bit 8: User timeout suggested when opening a TCP connection is actually applied
-* Bits 9-15: Unused
+* Bit 9: TTL can be specified in the parameters block of [TCPIP_SEND_ECHO](#421-tcpip_send_echo-send-icmp-echo-message-ping)
+* Bit 10: [TCPIP_DNS_Q](#431-tcpip_dns_q-start-a-host-name-resolution-query) is a blocking operation
+* Bit 11: [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection) is a blocking operation
+* Bit 12: The server certificate can be verified when opening a TCP connection with TLS in [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection)
+* Bits 13-15: Unused
+
+**Note for client application developers:** Bit 15 of the first set of capabilities flags, 
+the entire second set of capabilities flags, and bits 9-12 of the first set of features flags
+were introduced in version 1.1 of the specification. They aren't presend on implementations of version 1.0.
 
 The **link level protocol used** byte may be one of the following. Future versions of this
 specification may define additional codes.
@@ -358,6 +390,7 @@ specification may define additional codes.
 * 1: SLIP
 * 2: PPP
 * 3: Ethernet
+* 4: WiFi
 
 The **connection pool size and status** block informs about how many TCP, UDP and
 raw IP connections can be handled simultaneously by the implementation, as well as
@@ -495,6 +528,9 @@ parameters block with the following format must be supplied:
 * +7 (2): ICMP sequence number
 * +9 (2): Data length, 0 to maximum datagram size - 28
 
+The datagram will be send with the value specified if the _"TTL can be specified in the parameters block of
+TCPIP_SEND_ECHO"_ feature flag is set. If it isn't, the implementation will choose by itself the value to use.
+
 It is possible to choose the size of the data area of the ICMP message, but not its
 contents; these must be always the byte sequence 0 1 2 ... 253 254 255 0 1 2...
 appropriately truncated to match the specified size.
@@ -593,7 +629,8 @@ or both.
     * 2: the name could be resolved locally
   * L.H.E.D = Resolved IP address (only if no error occurred and B=1 or 2 is returned)
 
-This routine, together with its counterpart [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result) explained later, allows to obtain
+This routine, together with its counterpart [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result) 
+explained later, allows to obtain
 the IP address associated to a given host name (for example "smtp.mailserver.com"),
 which may be up to 255 characters long. To achieve this, the DNS servers whose IP
 addresses are currenly configured (see [TCPIP_GET_IPINFO](#413-tcpip_get_ipinfo-get-ip-address) routine) are queried. If the
@@ -621,6 +658,11 @@ B=2 is returned.
 is started and B=0 is immediately returned; the query processing will continue in
 background. TCP_DNS_S must be invoked in order to know when the query has
 finished, and to get the result.
+
+The implementation can use the _"TCPIP_DNS_Q is a blocking operation"_ feature flag to announce that
+this routine may query DNS servers and that in this case it won't return to the caller until
+such process is completed or fails (thus never returning the "a query to a DNS server is in progress" state).
+Client applications may use this flag to be aware that the routine may take a long time to return.
 
 In the first two cases, the result must be cached so that a later call to [TCPIP_DNS_S](#432-tcpip_dns_s-obtains-the-host-name-resolution-process-state-and-result) will
 return it as well. That way, client applications may ignore the fact that some names will
@@ -1162,6 +1204,12 @@ parameters block. The format of this block is:
 * +10 (1): Flags:
   * bit 0: Set for passive connection
   * bit 1: Set for resident connection
+  * bit 2: Use TLS
+  * bit 3: Verify the server certificate (only when using TLS on an active connection)
+  * bits 4-7: Unused, must be zero
+* +11 (2): Address of the server host name for certificate validation,
+or zero to skip host name validation (only when using TLS on an active connection and 
+"Verify the server certificate" is set)
 
 If the connection is open in active mode, a remote IP address and a remote port must be
 specified. The implementation must start trying to actively establish a connection (that
@@ -1212,6 +1260,60 @@ Once the connection is open, TCP data can be sent and received by using the
 [TCPIP_UDP_CLOSE](#442-tcpip_udp_close-close-a-udp-connection), or aborted by using [TCPIP_TCP_ABORT](#453-tcpip_tcp_abort-abort-a-tcp-connection). These routines expect the
 connection number returned by [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection) as an input parameter.
 
+The implementation may use the _"TCPIP_TCP_OPEN is a blocking operation"_ to announce that
+the routine will go throught the entire connection process synchronously, and will not return
+until either the connection is completed (the ESTABLISHED or the CLOSE_WAIT state is reached)
+or fails. Client applications may use this flag to be aware that the routine may take a long time to return.
+
+**Note for client application developers:** The usual procedure after opening an active connection
+is to enter a loop to wait while the connection is being established (while the connection status
+returned by [TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection) is either 
+SYN-SEND or SYN-RECEIVED). When entering such a loop
+it's important to take in account that the server might send data and close the connection 
+very quickly, thus progressing to the CLOSE_WAIT state and not giving TCPIP_TCP_STATE the opportunity to
+ever return ESTABLISHED as the state of the connection. Therefore, applications should NOT
+assume that TCPIP_TCP_STATE will eventually return ESTABLISHED as the state of the connection;
+they should check for CLOSE_WAIT as well (or even better, for robustness they should detect any
+unexpected state and abort the connection).
+
+#### About TLS support
+
+**Note:** TLS support was introduced in version 1.1 of the specification. Implementations of version
+1.0 don't provide any support for TLS and will always ignore the "Verify the server certificate" flag and
+the "Address of the server host name for certificate validation" field in the parameters block.
+
+When the "Use TLS" flag is not set in the connection parameters block, the connection
+must be done without using TLS. When the flag is set there are the following possibilities:
+
+* The connection is active
+
+  * "Verify the server certificate" flag is not set: the implementation must not
+  perform any kind of validation for the certificate provided by the server.
+
+  * "Verify the server certificate" flag is not set and "Address of the server host name for certificate validation"
+  is non-zero: the validity of the certificate provided by the server must be verified, and if there is any error, then the connection must be closed immediately. As part of the validation, the host name in the certificate must be compared
+  against the host name supplied in the parameters block; if they aren't identical the certificate is considered
+  to be invalid.
+  
+   * "Verify the server certificate" flag is not set and "Address of the server host name for certificate validation"
+  is zero: the validity of the certificate provided by the server must be verified, and if there is any error, then the connection must be closed immediately. However the host name in the certificate must be ignored.
+
+* The connection is passive
+
+  * The implementation must provide a valid certificate to be checked by the client that
+  initiated the connection.
+
+If the _The server certificate can be verified when opening a TCP connection with TLS_ feature flag
+is not set, then the server certificate is never verified and the implementation always ignores
+the value of the "Verify the server certificate" flag of the connection parameters block, acting as if it was zero.
+
+If the connection needs to be closed due to a TLS related error, it's strongly recommended to provide
+a meaningful code in the "Close reason" field when [TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection)
+is executed for the connection.
+
+In order to properly handle TLS the implementation will need to store and handle certificates and private keys.
+How this is done is outside the scope of this specification.
+
 **ERROR CODES**
 
 * ERR_OK
@@ -1229,6 +1331,10 @@ flag is not set.
   - The connection is required to be open in passive mode with unespecified remote
 socker, but the _"Open TCP connections in passive mode, with unespecified remote
 socket"_ capability flag is not set.
+  - The connection is required to be active and to use TLS, but the
+ _"Use TLS in TCP active connections"_ capability flag is not set.
+  - The connection is required to be passive and to use TLS, but the
+ _"Use TLS in TCP passive connections"_ capability flag is not set.
 
 * ERR_INV_PARAM
 
@@ -1250,6 +1356,11 @@ IP address and remote port.
 
 There are no free TCP connections available.
 
+* ERR_NO_CONN
+
+The _"TCPIP_TCP_OPEN is a blocking operation"_ feature flag is set and it wasn't possible
+to complete the connection failed.
+
 ### 4.5.2. TCPIP_TCP_CLOSE: Close a TCP connection
 
 * Input: 
@@ -1267,6 +1378,9 @@ connection, [TCPIP_TCP_ABORT](#453-tcpip_tcp_abort-abort-a-tcp-connection) shoul
 
 All the existing connections that were open in "transient" lifetime mode are closed if zero
 is specified as the connection number.
+
+After a connection is explicitly closed with this routine the implementation may discard any
+incoming data that hasn't yet been consumed by client applications.
 
 **ERROR CODES**
 
@@ -1328,7 +1442,8 @@ There is no connection open with the specified number.
 * Output: 
   * A = Error code
   * B = Connection state
-  * C = Close reason (only if ERR_NO_CONN is returned)
+  * C = Connection flags (if the connection exists and is in the ESTABLISHED or CLOSE_WAIT state)
+  * C = Close reason (if the connection doesn't exist)
   * HL = Number of total available incoming bytes
   * DE = Number of urgent available incoming bytes
   * IX = Available free space in the output buffer (FFFFh = infinite)
@@ -1360,6 +1475,18 @@ specification. It will be one of the following values:
 * 9: LAST-ACK
 * 10: TIME-WAIT
 
+If the connection uses TLS the implementation must not return ESTABLISHED as the state
+of the connection before the TLS handshake has finished and all the involved certificates
+have been verified; SYN-SENT (for active connections) or SYN-RECEIVED (for passive connections)
+should be returned instead.
+
+The **connection flags** value is returned onlye when the connection exists
+(no error is returned in A) and is in the ESTABLISHED or CLOSE_WAIT state,
+and contains the following information:
+
+* Bit 0: The connection uses TLS
+* Bits 1-7: Unused, always zero
+
 The **close reason** value is meaningful only when ERR_NO_CONN is returned in A, and
 contains an optional indication of why the connection is closed. It may be one of the
 following values ("Unknown" should be returned if the implementation does not support
@@ -1374,6 +1501,22 @@ reporting close reasons):
 * 6: The connection establishment timeout expired.
 * 7: Network connection was lost while the TCP connection was open.
 * 8: ICMP "Destination unreachable" message received.
+* 9: TLS: The server did not provide a certificate.
+* 10: TLS: Invalid server certificate.
+* 11: TLS: Invalid server certificate (the host name didn't match the name provided in the parameters block when opening the connection).
+* 12: TLS: Invalid server certificate (expired).
+* 13: TLS: Invalid server certificate (self-signed).
+* 14: TLS: Invalid server certificate (untrusted root).
+* 15: TLS: Invalid server certificate (revoked).
+* 16: TLS: Invalid server certificate (invalid certificate authority).
+* 17: TLS: Invalid server certificate (invalid TLS version or cypher suite).
+* 18: TLS: Our certificate was rejected by the peer.
+* 19: TLS: Other error.
+* 20-127: Reserved for future versions of the specification.
+* 128-255: Implementation specific reasons.
+
+The 128-255 range is for implementation specific reasons, implementations are free to return these with any meaning
+if none of the standard codes is appropriate for a given close reason.
 
 The **Number of total available incoming bytes** value indicates how many bytes have
 been received by this connection and can be retrieved by using the [TCPIP_TCP_RCV](#456-tcpip_tcp_rcv-receive-data-from-a-tcp-connection)
@@ -1387,6 +1530,13 @@ queued by calling the [TCPIP_TCP_SEND](#455-tcpip_tcp_send-send-data-a-tcp-conne
 that routine is made, and increases when the buffered data is sent an acknowledged. A
 value of FFFFh means that there is no practical buffer space limit and a call to
 [TCPIP_TCP_SEND](#455-tcpip_tcp_send-send-data-a-tcp-connection) will never return an ERR_BUFFER error.
+
+**Note for implementation developers:**: As stated in the description of [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection), 
+client applications should not assume that TCPIP_TCP_STATE will ever report the ESTABLISHED state (it could report CLOSE_WAIT on the first
+call after opening the connection if the server sends data and then closes the connection fast enough).
+However, for robustness it is recommended that implementations return ESTABLISHED as the current state of the
+connection when the actual state is CLOSE_WAIT but there's still incoming data that hasn't been yet consumed
+by the application.
 
 **ERROR CODES**
 
@@ -1444,6 +1594,11 @@ enqueued by the involved call and any other data previously enqueued is sent
 immediately (bypassing any possible data grouping algorithm being used), and the PUSH
 bit is set on the outgoing datagrams for this data. If the capability is not supported, the
 PUSH flag is ignored.
+
+Invoking this routine with HL=0 is allowed and must not result in any error
+(if the specified connection is valid). If the "Send the data PUSHed" flag is set and the
+capability is implemented, then this causes all the enqueued data to be
+sent immediately; otherwise, nothing is done.
 
 If the _"Send and receive TCP urgent data"_ capability flag is set, then all the data
 enqueued by the involved call will be set in segments with the URG bit set. If the
@@ -1566,7 +1721,7 @@ socket"_ capability flags is set).
 
 There is no connection open with the specified number.
 
-### 4.5.7. TCPIP_TCP_FLUSH: Flush the output buffer of a TCP connection
+### 4.5.7. TCPIP_TCP_DISCARD: Discard data in the output buffer of a TCP connection
 
 * Input:
   * A = 19
@@ -1575,7 +1730,7 @@ There is no connection open with the specified number.
 * Output:
   * A = Error code
 
-This routine flushes the output buffer of a TCP connection, that is, removes from the
+This routine discards all data in the output buffer of a TCP connection, that is, removes from the
 appropriate output buffer the data that has been enqueued to be sent by
 [TCPIP_TCP_SEND](#455-tcpip_tcp_send-send-data-a-tcp-connection) but has not been sent yet.
 
@@ -1591,7 +1746,7 @@ The data has been successfully retrieved.
 connections in active mode"_, _"Open TCP connections in passive mode, with specified
 remote socket"_ or _"Open TCP connections in passive mode, with unespecified remote
 socket"_ capability flags is set).
-  - The "Flush the output buffer of a TCP connection" capability flag is not set.
+  - The "Discard data in the output buffer of a TCP connection" capability flag is not set.
 
 * ERR_NO_CONN
 
@@ -1892,8 +2047,8 @@ have a value, the implementation may either maintain the obtained addresses or r
 them to 0.0.0.0.
 
 Addresses on a group not set to automatic retrieving are expected to be manually set by
-the user, by using the [TCPIP_CONFIG_IP](#472-tcpip_config_ip-manually-configure-an-ip-address)S routine, after the implementation is installed/
-initialized; otherwise they will remain with the value 0.0.0.0 indefinitely.
+the user, by using the [TCPIP_CONFIG_IP](#472-tcpip_config_ip-manually-configure-an-ip-address)S routine, 
+after the implementation is installed/initialized; otherwise they will remain with the value 0.0.0.0 indefinitely.
 
 Implementations supporting automatic address retrieval should default to automatically
 retrieve all addresses when installed/initialized.
@@ -1906,8 +2061,13 @@ The setting has been successfully changed or the current setting has been return
 
 * ERR_NOT_IMP
 
-The _"Automatically obtain the IP addresses"_ capability flags is not set. The
-implementation does not support automatical retrieval of IP addresses.
+  * B=1 and C:0 is set, but the _"Automatically obtain the local IP address, subnet mask and default gateway,
+    by using DHCP or an equivalent protocol"_ capability flag is not set. The
+    implementation does not support automatical retrieval of these addresses.
+
+  * B=1 and C:1 is set, but the _"Automatically obtain the IP addresses of the DNS servers,
+    by using DHCP or an equivalent protocol"_ capability flag is not set. The
+    implementation does not support automatical retrieval of these addresses.
 
 * ERR_INV_PAR
 
@@ -1931,8 +2091,8 @@ An invalid value for B or C has been specified at input.
 
 This routine allows to manually set the value of one of the IP addresses used by the
 system. The addresses group of the involved address should have been previously
-configured as "manual setting" (see [TCPIP_CONFIG_AUTOIP](#471-tcpip_config_autoip-enable-or-disable-the-automatic-ip-addresses-retrieval) routine), otherwise the
-behavior is undefined.
+configured as "manual setting" (see [TCPIP_CONFIG_AUTOIP](#471-tcpip_config_autoip-enable-or-disable-the-automatic-ip-addresses-retrieval) routine),
+otherwise the behavior is undefined.
 
 The addresses are supplied in the format L.H.E.D. For example, 1.2.3.4 would be
 specified as HL=0201h, DE=0403h.
@@ -1942,16 +2102,27 @@ unless the implementation installer provides a mechanism to explicitly set the I
 addresses at install time.
 
 This routine is intended to be invoked when the address is configured for manual setting
-(see the [TCPIP_CONFIG_AUTOIP](#471-tcpip_config_autoip-enable-or-disable-the-automatic-ip-addresses-retrieval) rotuine). If invoked then the address is configured for
+(see the [TCPIP_CONFIG_AUTOIP](#471-tcpip_config_autoip-enable-or-disable-the-automatic-ip-addresses-retrieval) routine).
+If invoked then the address is configured for
 automatic retrieval, the behavior is undefined: the implementation may either replace
 the obtained address with the one supplied, or may simply ignore the routine call and
 preserve the previous address.
+
+Note that it is possible for an address to not being configurable neither manually with this routine
+nor automatically via DCHP or a similar mechanism (see [TCPIP_CONFIG_AUTOIP](#471-tcpip_config_autoip-enable-or-disable-the-automatic-ip-addresses-retrieval)).
+In this case the implementation decides by itself the value of that address at install time,
+and from the point of view of client applications it's a hardcoded address.
 
 **ERROR CODES**
 
 * ERR_OK
 
 The address has been successfully set.
+
+* ERR_NOT_IMP
+
+The associated _"Manually set the ... IP address"_ capability flag is not set.
+The implementation does not support automatical retrieval of the specified address.
 
 * ERR_INV_PAR
 
@@ -1984,7 +2155,7 @@ It is not possible to change only the TTL or only the ToS. If only one of the va
 be changed, then the routine must be called with B=0, the desired value must be
 changed (D or E), and then the routine must be called with B=1.
 
-Implementations should default to TTL=64 and ToS=0 when installed/initialized.
+Implementations should default to TTL=64 and ToS=0 when installed/initialized whenever possible.
 
 **ERROR CODES**
 
@@ -1998,8 +2169,11 @@ An invalid value for B has been specified at input.
 
 * ERR_NOT_IMP
 
-B=1 at input but the "Explicitly set the TTL and TOS for outgoing datagrams" capability
-flags is not set. The implementation does not support explicitly setting these values.
+  * B=0 at input but the _"Get the TTL and ToS used for outgoing datagrams"_ capability flag is not set.
+    The implementation does not support reading these values.
+
+  * B=1 at input but the _"Explicitly set the TTL and ToS for outgoing datagrams"_ capability
+    flags is not set. The implementation does not support explicitly setting these values.
 
 ### 4.7.4. TCPIP_CONFIG_PING: Get/set the automatic PING reply flag
 
@@ -2123,3 +2297,60 @@ PREV_TIMER:
 **ERROR CODES**
 
 This routine never fails. ERR_OK is always returned.
+
+
+## 5. Change log
+
+This section lists the changes introduced in all the existing versions of the specification.
+
+### Version 1.1
+
+- Added support for TLS on TCP connections:
+  - TLS related capability and feature flags added to [TCPIP_GET_CAPAB](#412-tcpip_get_capab-get-information-about-the-tcpip-capabilities-and-features)
+  - A new flag to request TLS, and an optional field for the server host name, added to the
+    connection parameters block in [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection)
+  - [TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection) now returns a flag
+    that indicates if the connection is using TLS
+  - [TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection) defines new
+    TLS related cause reasons
+
+- `TCPIP_TCP_FLUSH` has been renamed to `TCPIP_TCP_DISCARD` to avoid confussions, since "flush" 
+in the context of data connections usually means "send all the existing data" and not "discard data without sending it".
+
+- The description of `TCPIP_TCP_SEND` now includes the fact that requesting to send zero bytes is allowed,
+and results in all the enqueued data being send in the PUSH flag is specified. 
+This was true in v1.0 of the specification too, but not it's explicitly documented.
+
+- Added bit 15 of the first set of capabilities flags, the entire second set of capabilities flags, 
+bits 9-12 of the first set of features flags, and the WiFi link layer protocol identifier to
+[TCPIP_GET_CAPAB](#412-tcpip_get_capab-get-information-about-the-tcpip-capabilities-and-features)
+
+- [TCPIP_SEND_ECHO](#421-tcpip_send_echo-send-icmp-echo-message-ping) is now allowed to ignore the supplied value
+for TTL, if the _"TTL can be specified in the parameters block of TCPIP_SEND_ECHO"_ capability flag is not set.
+
+- The _"Automatically obtain the IP addresses, by using DHCP or an equivalent protocol"_ capability flag is now
+deprecated, replaced by the new two more granular flags in the second flags block.
+
+- [TCPIP_CONFIG_IP](#472-tcpip_config_ip-manually-configure-an-ip-address) can now return ERR_NOT_IMP
+if the associated _"Manually set the ... IP address"_ capability flag for the address whose change was attempted
+is not set.
+
+- [TCPIP_CONFIG_TTL](#473-tcpip_config_ttl-getset-the-value-of-ttl-and-tos-for-outgoing-datagrams) can now return
+ERR_NOT_IMP if getting the current values was requested but the _"Get the TTL used for outgoing datagrams"_
+capability flag is not set.
+
+- Added an explanation about the _"TCPIP_DNS_Q is a blocking operation"_ feature flag
+ n the description of [TCPIP_DNS_Q](#431-tcpip_dns_q-start-a-host-name-resolution-query).
+
+- Added an explanation about the _"TCPIP_TCP_OPEN is a blocking operation"_ feature flag,
+about the _"TLS is supported for TCP connections"_ feature flag and about
+the ESTABLISHED and CLOSE-WAIT states in the description of [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection).
+
+- Added ERR_NO_CONN as a possible error code for [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection).
+
+- Added the remark about returning ESTABLISHED state on CLOSE_WAIT with pending incoming data in 
+[TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection).
+
+- Added implementation specific close reasons for [TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection).
+
+- Added the remark about discarding pending incoming data in [TCPIP_TCP_CLOSE](#452-tcpip_tcp_close-close-a-tcp-connection)
