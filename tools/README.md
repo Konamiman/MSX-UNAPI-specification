@@ -4,7 +4,9 @@ This directory contains the source of various UNAPI related tools. Looking at th
 
 * [apilist.asm](apilist.asm): This tool lists all the installed UNAPI implementations for a given specification identifier.
 
-* [ramhelpr.asm](ramhelpr.asm): Installer for a UNAPI compatible RAM helper.
+* [ramhelpr.asm](ramhelpr.asm): This is the source for two tools:
+  * RAMHELPR.COM: Installs an UNAPI compatible RAM helper. To be used in MSX-DOS 2 and Nextor.
+  * MSR.COM: Installs MSX-DOS 2 compatible mapper support routines and an UNAPI compatible RAM helper. To be used in MSX-DOS 1.
 
 * [eth.c](eth.c): Control program for Ethernet UNAPI implementations.
 
