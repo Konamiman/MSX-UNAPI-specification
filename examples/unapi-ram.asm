@@ -203,6 +203,9 @@ NOT_INST:
 
         ;--- DOS 1: Use the last segment on the primary mapper
 
+        ld      a,2
+        ld      (MAPTAB_ENTRY_SIZE),a
+
         ld      hl,(MAPTAB_ADD)
         ld      b,(hl)
         inc     hl
@@ -217,6 +220,13 @@ ALLOC_DOS2:
         ld      de,ALL_SEG
         ld      bc,15*3
         ldir
+
+        ld      de,0401h
+        call    EXTBIO
+        ld      (MAPTAB_ADD),hl
+
+        ld      a,8
+        ld      (MAPTAB_ENTRY_SIZE),a
 
         ld      a,(PRIM_SLOT)
         or      00100000b       ;Try primary mapper, then try others
@@ -279,14 +289,15 @@ ALLOC_OK:
 
         ld      hl,(MAPTAB_ADD)
         ld      a,(ALLOC_SLOT)
+        ld      bc,(MAPTAB_ENTRY_SIZE)
+        ld      b,0
         ld      d,a
         ld      e,0     ;Index on mappers table
 SRCHMAP:
         ld      a,(hl)
         cp      d
         jr      z,MAPFND
-        inc     hl
-        inc     hl      ;Next table entry
+        add     hl,bc   ;Next table entry
         inc     e
         jr      SRCHMAP
 MAPFND:
@@ -332,7 +343,10 @@ P1_SEG: db      0               ;Segment number for TPA on page 1
 ALLOC_SLOT:     db      0       ;Slot for the allocated segment
 ALLOC_SEG:      db      0       ;Allocated segment
 HELPER_ADD:     dw      0       ;Address of the RAM helper jump table
-MAPTAB_ADD:     dw      0       ;Address of the RAM helper mappers table
+MAPTAB_ADD:     dw      0       ;Address of the mappers table supplied by either DOS 2 or the RAM helper
+MAPTAB_ENTRY_SIZE: db   0       ;Size of an entry in the mappers table:
+                                ;- 8 in DOS 2 (mappers table provided by standard mapper support routines),
+                                ;- 2 in DOS 1 (mappers table provided by the RAM helper)
 IMPLEM_ENTRY:   dw      0       ;Entry point for implementations
 
         ;--- Mapper support routines, used at install time only
