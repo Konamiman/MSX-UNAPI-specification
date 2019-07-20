@@ -1193,6 +1193,7 @@ connection number, being the resident connections unaffected. The same applies t
 * Output: 
   * A = Error code
   * B = Connection number
+  * C = Close reason (only if A=ERR_NO_CONN)
 
 This routine opens a new TCP connection using the information specified in the
 parameters block. The format of this block is:
@@ -1264,6 +1265,10 @@ The implementation may use the _"TCPIP_TCP_OPEN is a blocking operation"_ to ann
 the routine will go throught the entire connection process synchronously, and will not return
 until either the connection is completed (the ESTABLISHED or the CLOSE_WAIT state is reached)
 or fails. Client applications may use this flag to be aware that the routine may take a long time to return.
+
+If _"TCPIP_TCP_OPEN is a blocking operation"_ is set and the connection establishment fails, then a ERR_NO_CONN error
+must be returned in A. In this case, a close reason must be returned in register C; the list of possible
+close reasons is the same one used in [TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection).
 
 **Note for client application developers:** The usual procedure after opening an active connection
 is to enter a loop to wait while the connection is being established (while the connection status
@@ -1358,8 +1363,7 @@ There are no free TCP connections available.
 
 * ERR_NO_CONN
 
-The _"TCPIP_TCP_OPEN is a blocking operation"_ feature flag is set and it wasn't possible
-to complete the connection failed.
+The _"TCPIP_TCP_OPEN is a blocking operation"_ feature flag is set and the connection failed.
 
 ### 4.5.2. TCPIP_TCP_CLOSE: Close a TCP connection
 
@@ -2346,7 +2350,8 @@ capability flag is not set.
 about the _"TLS is supported for TCP connections"_ feature flag and about
 the ESTABLISHED and CLOSE-WAIT states in the description of [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection).
 
-- Added ERR_NO_CONN as a possible error code for [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection).
+- Added ERR_NO_CONN as a possible error code for [TCPIP_TCP_OPEN](#451-tcpip_tcp_open-open-a-tcp-connection),
+and a close reason to be returned in C when that error is returned.
 
 - Added the remark about returning ESTABLISHED state on CLOSE_WAIT with pending incoming data in 
 [TCPIP_TCP_STATE](#454-tcpip_tcp_state-get-the-state-of-a-tcp-connection).
