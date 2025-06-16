@@ -1,0 +1,3 @@
+[submodule "lib/konamiman-sdcc"]
+	path = lib/konamiman-sdcc
+	url = git@github.com:Konamiman/SDCC-libraries-for-MSX.git

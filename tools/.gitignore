@@ -10,6 +10,10 @@
 *.noi
 *.ihx
 *.lk
-asm.h
 eth.asm
 tcpip.asm
+DosCall.asm
+Unapi*.asm
+printf*.asm
+bin/
+

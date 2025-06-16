@@ -1,11 +1,8 @@
-;--- UNAPI implementations lister v1.1
-;    By Konamiman, 2/2010
+;--- UNAPI implementations lister
+;    By Konamiman
 ;
-;    You can compile it with sjasm (https://github.com/Konamiman/Sjasm/releases):
+;    You can compile it with Nestor80 (https://github.com/Konamiman/Nestor80):
 ;    sjasm apilist.asm apilist.com
-;    The resulting file is a MSX-DOS .COM program.
-;
-;    Usage: apilist <implementation identifier>|*
 
 ;*******************
 ;***  CONSTANTS  ***
@@ -465,7 +462,7 @@ WELCOME_S:
   db  "$"
 
 USAGE_S:
-  db  "Usage: APILIST <implementation identifier>|*",13,10
+  db  "Usage: APILIST <specification identifier>|*",13,10
   db  "       use * to list specificationless applications.",13,10,"$"
 
 FOUND_S:

@@ -24,14 +24,14 @@
 ;
 ; How to build:
 ;
-; 1. Get sjasm (https://github.com/Konamiman/Sjasm/releases)
+; 1. Get Nestor80 (https://github.com/Konamiman/Nestor80/releases)
 ;
 ; 2. Get MKNEXROM.EXE and the Nextor kernel base file (Nextor-<version>.base.dat) 
 ;    from the latest release of Nextor (https://github.com/Konamiman/Nextor/releases)
 ;
 ; 3. Build the driver and the identifier string:
-;    sjasm unapi-nextor.asm unapi-nextor.drv
-;    sjasm unapi-nextor-id.asm unapi-nextor-id.dat
+;    N80 unapi-nextor.asm unapi-nextor.drv
+;    N80 unapi-nextor-id.asm unapi-nextor-id.dat --build-type abs
 ;
 ; 4. Build the Nextor kernel ROM:
 ;    mknexrom Nextor-<version>.base.dat nextor.rom /d:unapi-nextor.dat /e:unapi-nextor-id.dat
@@ -332,7 +332,7 @@ UNAPI_ENTRY:
 	ld	hl,FN_TABLE
 	bit	7,a
 
-	if MAX_IMPFN >= 128
+	if MAX_IMPFN gte 128
 
 	jr	z,IS_STANDARD
 	ld	hl,IMPFN_TABLE
@@ -393,7 +393,7 @@ FN_2:	dw	FN_MULT
 
 ;--- Implementation-specific routines addresses table
 
-	if MAX_IMPFN >= 128
+	if MAX_IMPFN gte 128
 
 IMPFN_TABLE:
 FN_128:	dw	FN_DUMMY

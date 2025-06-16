@@ -14,4 +14,4 @@ This repository contains the following documents:
 
 Also there are a couple of directories with code: [examples](/examples) and [tools](/tools). For the later, binaries are available in the [releases](https://github.com/Konamiman/MSX-UNAPI-specification/releases) section.
 
-If you like MSX-UNAPI **[please consider donating](http://www.konamiman.com/msx/msx-e.html#donate)**. My kids need moar shoes!
+Note that [the SDCC libraries repository](https://github.com/Konamiman/SDCC-libraries-for-MSX) is added as [a git subodule](https://github.blog/open-source/git/working-with-submodules/) in the `lib/konamiman-sdcc` directory, and the sources in [tools](/tools) depend on it. If you find that `lib/konamiman-sdcc` is empty after you clone this repository, run `git submodule update --init --recursive`.

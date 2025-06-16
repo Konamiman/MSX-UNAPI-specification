@@ -7,8 +7,8 @@
 ;
 ;    The code installs on a mapped RAM segment.
 ;    The RAM helper must have been previously installed.
-;    You can compile it with sjasm (https://github.com/Konamiman/Sjasm/releases):
-;    sjasm unapi-specless.asm blink.com
+;    You can compile it with Nestor80 (https://github.com/Konamiman/Nestor80/releases):
+;    N80 unapi-specless.asm blink.com --direct-output-write
 ;    The resulting file is a MSX-DOS .COM program that installs the tsr.
 ;
 ;    Search for "TODO" comments for what to change/extend when creating your own implementation.

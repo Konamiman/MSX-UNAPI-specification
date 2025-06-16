@@ -1,22 +1,17 @@
 /* TCP/IP UNAPI implementations control program
-   By Konamiman 6/2019
+   By Konamiman
    
    Compilation command line:
    
-   sdcc --code-loc 0x180 --data-loc 0 -mz80 --disable-warning 196 --no-std-crt0 crt0msx_msxdos_advanced.rel printf_simple.rel putchar_msxdos.rel asm.lib tcpip.c
-   hex2bin -e com tcpip.ihx
-
-   The resulting file, eth.com, is a MSX-DOS executable.
-   
-   Get the required extra files (asm.h, asm.lib, crt0msx_msxdos_advanced.rel, printf_simple.rel, putchar_msxdos.rel) here:
-   https://www.konamiman.com/msx/msx-e.html#sdcc
+   sdcc --code-loc 0x180 --data-loc 0 -mz80 --disable-warning 196 --no-std-crt0 crt0_msxdos.rel printf_simple.rel putchar_msxdos.rel asm_call.rel DosCall.rel UnapiGetCount.rel UnapiBuildCodeBlock.rel UnapiCall.rel UnapiRead.rel UnapiGetRamHelper.rel tcpip.c
+   objcopy -I ihex -O binary tcpip.ihx tcpip.com
 */
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include "asm.h"
+#include "../lib/konamiman-sdcc/src/asm/asm.h"
 
 #define _TERM0 0
 
