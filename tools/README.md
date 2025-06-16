@@ -12,4 +12,6 @@ This directory contains the source of various UNAPI related tools. Looking at th
 
 * [tcpip.c](eth.c): Control program for TCP/IP UNAPI implementations.
 
-Note that the tools written in C use [ASMLIB](https://github.com/Konamiman/MSX/tree/master/SRC/SDCC/asmlib) and also `crt0msx_msxdos_advanced`, `printf_simple` and `putchar_msxdos` from [Konamiman's MSX page](https://www.konamiman.com/msx/msx-e.html#sdcc).
+To build the tools written in C you need [SDCC](https://sdcc.sourceforge.net/), and to build the tools written in assembler you need [Nestor80](https://github.com/Konamiman/Nestor80). You may want to take a look at [the Makefile](Makefile) for guidance.
+
+Note also that [the SDCC libraries repository](https://github.com/Konamiman/SDCC-libraries-for-MSX) (a dependency for these tools) is added as [a git subodule](https://github.blog/open-source/git/working-with-submodules/) in the `lib/konamiman-sdcc` directory, if you find that `lib/konamiman-sdcc` is empty after you clone this repository, run `git submodule update --init --recursive`.

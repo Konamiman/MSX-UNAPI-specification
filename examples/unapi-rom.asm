@@ -6,8 +6,8 @@
 ;       Function 1: Returns HL = L + E
 ;       Function 2: Returns HL = L * E
 ;
-;    You can compile it with sjasm (https://github.com/Konamiman/Sjasm/releases):
-;    sjasm unapi-rom.asm math.rom
+;    You can compile it with Nestor80 (https://github.com/Konamiman/Nestor80/releases):
+;    N80 unapi-rom.asm math.rom
 ;
 ;    Search for "TODO" comments for what to change/extend when creating your own implementation.
 
@@ -206,7 +206,7 @@ UNAPI_ENTRY:
   ld  hl,FN_TABLE
   bit  7,a
 
-  if MAX_IMPFN >= 128
+  if MAX_IMPFN gte 128
 
   jr  z,IS_STANDARD
   ld  hl,IMPFN_TABLE
@@ -267,7 +267,7 @@ FN_2:  dw  FN_MULT
 
 ;--- Implementation-specific routines addresses table
 
-  if MAX_IMPFN >= 128
+  if MAX_IMPFN gte 128
 
 IMPFN_TABLE:
 FN_128:  dw  FN_DUMMY

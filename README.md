@@ -12,6 +12,4 @@ This repository contains the following documents:
 
 * [TCP/IP UNAPI specification](docs/TCP-IP%20UNAPI%20specification.md): The specification of an API for TCP/IP stacks.
 
-Also there are a couple of directories with code: [examples](/examples) and [tools](/tools). For the later, binaries are available in the [releases](https://github.com/Konamiman/MSX-UNAPI-specification/releases) section.
-
-If you like MSX-UNAPI **[please consider donating](http://www.konamiman.com/msx/msx-e.html#donate)**. My kids need moar shoes!
+Also there are a couple of directories with code: [examples](/examples) and [tools](/tools). See also the README files in these directories.

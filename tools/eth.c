@@ -1,19 +1,14 @@
 /* Ethernet UNAPI implementation controller
-   By Konamiman 2/2010
+   By Konamiman
    
    Compilation command line:
    
-   sdcc --code-loc 0x180 --data-loc 0 -mz80 --disable-warning 196 --no-std-crt0 crt0msx_msxdos_advanced.rel printf_simple.rel putchar_msxdos.rel asm.lib eth.c
-   hex2bin -e com eth.ihx
-
-   The resulting file, eth.com, is a MSX-DOS executable.
-   
-   Get the required extra files (asm.h, asm.lib, crt0msx_msxdos_advanced.rel, printf_simple.rel, putchar_msxdos.rel, asm.lib) here:
-   https://www.konamiman.com/msx/msx-e.html#sdcc
+   sdcc --code-loc 0x180 --data-loc 0 -mz80 --disable-warning 196 --no-std-crt0 crt0_msxdos.rel printf_simple.rel putchar_msxdos.rel asm_call.rel DosCall.rel UnapiGetCount.rel UnapiBuildCodeBlock.rel UnapiCall.rel UnapiRead.rel UnapiGetRamHelper.rel eth.c
+   objcopy -I ihex -O binary eth.ihx eth.com
 */
 
 #include <stdio.h>
-#include "asm.h"
+#include "../lib/konamiman-sdcc/src/asm/asm.h"
 
 #define LowerCase(c) ((c) | 32)
 

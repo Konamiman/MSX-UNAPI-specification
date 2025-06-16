@@ -4,3 +4,7 @@
 *.rom
 *.com
 *.dat
+*.bin
+*.BIN
+*.REL
+*.LST

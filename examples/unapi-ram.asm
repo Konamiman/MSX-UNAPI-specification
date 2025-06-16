@@ -9,8 +9,8 @@
 ;    The code installs on a mapped RAM segment.
 ;    The RAM helper must have been previously installed.
 ;
-;    You can compile it with sjasm (https://github.com/Konamiman/Sjasm/releases):
-;    sjasm unapi-ram.asm math.com
+;    You can compile it with Nestor80 (https://github.com/Konamiman/Nestor80/releases):
+;    N80 unapi-ram.asm math.com --direct-output-write
 ;    The resulting file is a MSX-DOS .COM program that installs the implementation.
 ;
 ;    Search for "TODO" comments for what to change/extend when creating your own implementation.
@@ -500,7 +500,7 @@ UNAPI_ENTRY:
         ld      hl,FN_TABLE
         bit     7,a
 
-        if      MAX_IMPFN >= 128
+        if      MAX_IMPFN gte 128
 
         jr      z,IS_STANDARD
         ld      hl,IMPFN_TABLE
@@ -561,7 +561,7 @@ FN_2:   dw      FN_MULT
 
 ;--- Implementation-specific routines addresses table
 
-        if      MAX_IMPFN >= 128
+        if      MAX_IMPFN gte 128
 
 IMPFN_TABLE:
 FN_128: dw      FN_DUMMY

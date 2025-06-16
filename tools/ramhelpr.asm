@@ -1,11 +1,18 @@
-;--- MSX-UNAPI standalone RAM helper installer
-;    By Konamiman, 6-2019
+;--- MSX-UNAPI standalone RAM helper/mapper support routines installer
+;    By Konamiman
 ;
 ;    See USAGE_S for usage instructions.
 ;
-;    You can compile it with sjasm (https://github.com/Konamiman/Sjasm/releases):
-;    sjasm ramhelpr.asm ramhelpr.com (if INSTALLMSR = 0)
-;    sjasm ramhelpr.asm msr.com (if INSTALLMSR = 10)
+;    You can compile it with Nestor80 (https://github.com/Konamiman/Nestor80):
+;
+;    N80 ramhelpr.asm ramhelpr.com --define-symbols INSTALL_MSR=0
+;    N80 ramhelpr.asm msr.com --define-symbols INSTALL_MSR=1
+;
+;    Use INSTALL_MSR=1 to build an installer for the DOS 2 mapper support routines and the UNAPI RAM helper,
+;    In that case the installer will fail if these routines are already present.
+;
+;    Use INSTALL_MSR=0 to build an installer for the UNAPI RAM helper only.
+;
 ;    The resulting file is a MSX-DOS .COM program that installs the routines or the helper.
 ;
 ;    Optional improvements (up to you):
@@ -31,12 +38,16 @@
 ;***  CONSTANTS  ***
 ;*******************
 
-;--- Set to 1 to build an installer for the DOS 2 mapper support routines and the UNAPI RAM helper,
-;    In that case the installer will fail if these routines are already present.
-;
-;    Set to 0 to build an installer for the UNAPI RAM helper only.
+        ifndef INSTALL_MSR
+        .fatal Assemble with --define-symbols INSTALL_MSR=0 or --define-symbols INSTALL_MSR=1
+        endif
 
-INSTALL_MSR:    equ 1
+        if INSTALL_MSR eq 0
+        .print1 INSTALL_MSR is 0, assembling UNAPI RAM helper only installer
+        else
+        .print1 INSTALL_MSR is {INSTALL_MSR}, assembling UNAPI RAM helper + MSR installer
+        endif
+
 
 ;--- System variables and routines
 
@@ -105,7 +116,7 @@ SRCHPAR:
 
         or      32
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
         cp      "c"
         jp      z,DO_CLEANUP
         endif
@@ -159,7 +170,7 @@ NEXT_PARAM:
 DO_INSTALL:
         ld      (CMDLINE_PNT),hl
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         xor     a       ;Get mapper support routines
         ld      de,0402h
@@ -264,7 +275,7 @@ INST_HELPER:
         jp      5
 OK_TPA:
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
         ;--- If TPA is spread across multiple slots, unify them
 
@@ -343,7 +354,7 @@ BUILDP3_DOS1:
 
         ;Setup mappers entry for the primary mapper
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
         ld      a,8
         else
         ld      a,2
@@ -368,7 +379,7 @@ BUILDP3_DOS1:
         jp      5
 OK_PRIMAP:
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ld      ix,MAPTAB__1+8
         ld      iy,MAPTAB__2+8
@@ -431,7 +442,7 @@ BUILDP3_DOS1_L:
         pop     bc
         cp      2
         jr      c,BUILDP3_DOS1_N
-        if      INSTALL_MSR=0   ;For MSR it's "segments count", for RH it's "number of last segment"
+        if      INSTALL_MSR = 0   ;For MSR it's "segments count", for RH it's "number of last segment"
         dec     a
         endif
 
@@ -442,7 +453,7 @@ BUILDP3_DOS1_L:
         ld      (ix+1),a
         ld      (iy+1),a
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ld      (ix+2),a    ;Free segments
         ld      (iy+2),a
@@ -495,7 +506,7 @@ BUILDP3_DOS1_N:
         pop     ix
         jp      BUILDP3_DOS1_L
 
-        if      INSTALL_MSR=0
+        if      INSTALL_MSR = 0
 
         ;>>> Build the mappers table when MSR are already present
 
@@ -530,7 +541,7 @@ BUILDP3_DOS2:
 
 END_BUILDP3:
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ld      hl,0            ;We don't provide reduced mappers table,
         ld      (LDBC__1+1),hl  ;we've generated a standard table
@@ -574,7 +585,7 @@ END_BUILDP3:
 
         ;--- Install code in segment
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ld      a,(MAPTAB__1)
         ld      h,40h
@@ -1070,7 +1081,7 @@ _PUTP1__1:
 
         endif
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
 MSR_JUMP__1:
         jp  ALL_SEG__1
@@ -1102,7 +1113,7 @@ RH_JUMP__1:
 NEWEXT__1:
         push    af
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ld      a,d
         cp      4
@@ -1290,7 +1301,7 @@ _CALLRAM_MAPTAB__1:
 
 CALLIX__1:     jp      (ix)
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ;--- ALL_SEG and FRE_SEG
 
@@ -1493,7 +1504,7 @@ CURSEGS__1:     db 3,2,1,0
 MAPTAB__1:
 
 P3_CODE_END__1:
-    if  INSTALL_MSR = 1
+    if  INSTALL_MSR
     ds (8*2)+1
     else
     ds (4*2)+1       ;Space for building the table
@@ -1522,7 +1533,7 @@ _PUTP1__2:
 
         endif
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
 MSR_JUMP__2:
         jp  ALL_SEG__2
@@ -1554,7 +1565,7 @@ RH_JUMP__2:
 NEWEXT__2:
         push    af
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ld      a,d
         cp      4
@@ -1742,7 +1753,7 @@ _CALLRAM_MAPTAB__2:
 
 CALLIX__2:     jp      (ix)
 
-        if      INSTALL_MSR = 1
+        if      INSTALL_MSR
 
         ;--- ALL_SEG and FRE_SEG
 
@@ -1946,7 +1957,7 @@ MAPTAB__2:
 
 
 P3_CODE_END__2:
-    if  INSTALL_MSR = 1
+    if  INSTALL_MSR
     ds (8*2)+1
     else
     ds (4*2)+1       ;Space for building the table
@@ -1965,7 +1976,7 @@ PROGRAM_S:      db      "PROGRAM",0
 
 WELCOME_S:
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
         db      "Standalone mapper support routines + UNAPI RAM helper installer 1.2",13,10
 
@@ -1982,7 +1993,7 @@ WELCOME_S:
 USAGE_S:
         ;        --------------------------------------------------------------------------------
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
         db      "Usage: msr [i|f] [command[&command[&...]]]",13,10
         db      "       msr c",13,10
@@ -1999,7 +2010,7 @@ USAGE_S:
         db      "command: DOS command to be invoked after the install process (DOS 2 only).",13,10
         db      "         Under COMMAND 2.4x multiple commands can be specified, separated by &.",13,10
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
         db      13,10
         db      "c: Cleanup: free all segments allocated in user mode.",13,10
@@ -2010,7 +2021,7 @@ USAGE_S:
 
         db      13,10,"$"
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
 MSR_ALINST_S:
         db      "*** Mapper support routines are already installed.",13,10
@@ -2036,7 +2047,7 @@ CMDWARNING_S:
 
 OK_S:   db      "Installed. Have fun!",13,10,"$"
 
-        if INSTALL_MSR = 1
+        if INSTALL_MSR
 
 ;****************************************
 ;***  CODE TO BE COPIED IN A SEGMENT  ***
