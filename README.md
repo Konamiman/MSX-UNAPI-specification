@@ -12,6 +12,4 @@ This repository contains the following documents:
 
 * [TCP/IP UNAPI specification](docs/TCP-IP%20UNAPI%20specification.md): The specification of an API for TCP/IP stacks.
 
-Also there are a couple of directories with code: [examples](/examples) and [tools](/tools). For the later, binaries are available in the [releases](https://github.com/Konamiman/MSX-UNAPI-specification/releases) section.
-
-Note that [the SDCC libraries repository](https://github.com/Konamiman/SDCC-libraries-for-MSX) is added as [a git subodule](https://github.blog/open-source/git/working-with-submodules/) in the `lib/konamiman-sdcc` directory, and the sources in [tools](/tools) depend on it. If you find that `lib/konamiman-sdcc` is empty after you clone this repository, run `git submodule update --init --recursive`.
+Also there are a couple of directories with code: [examples](/examples) and [tools](/tools). See also the README files in these directories.
