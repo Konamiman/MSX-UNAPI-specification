@@ -15,6 +15,14 @@
 ;***  CONSTANTS  ***
 ;*******************
 
+; 0: Copy the old EXTBIO hook directly to the area for our slot in SLTWRK
+;    (enough if we don't need space in page 3 for anything else).
+;
+; 1: Allocate 5 bytes in page 3, copy old EXTBIO hook there, set allocated address
+;    in the area for our slot in SLTWRK.
+
+ALLOC_P3: equ 0
+
 ;--- System variables and routines
 
 CHPUT:  equ  00A2h
@@ -75,9 +83,26 @@ OK_INIEXTB:
 
   ;--- Save previous EXTBIO hook
 
-  call  GETSLT
-  call  GETWRK
+  if ALLOC_P3
+
+  ld hl,5
+  call ALLOC
+  push hl
+  call GETSLT
+  call GETWRK
+  pop de
+  ld (hl),e
+  inc hl
+  ld (hl),d
+
+  else
+
+  call GETSLT
+  call GETWRK
   ex  de,hl
+
+  endif
+
   ld  hl,EXTBIO
   ld  bc,5
   ldir
@@ -91,6 +116,8 @@ OK_INIEXTB:
   ld  (EXTBIO+1),a
   ld  hl,DO_EXTBIO
   ld  (EXTBIO+2),hl
+  ld a,0C9h
+  ld (EXTBIO+4),a
   ei
 
   ;>>> UNAPI initialization finished, now perform
@@ -153,6 +180,16 @@ LOOP:  ld  a,(de)
 
   call  GETSLT
   call  GETWRK
+
+  if ALLOC_P3
+
+  ld a,(hl)
+  inc hl
+  ld h,(hl)
+  ld l,a
+
+  endif
+
   pop  af
   pop  bc
   or  a
@@ -189,6 +226,16 @@ JUMP_OLD:  ;Assumes "push hl,bc,af" done
   push  de
   call  GETSLT
   call  GETWRK
+
+  if ALLOC_P3
+
+  ld a,(hl)
+  inc hl
+  ld h,(hl)
+  ld l,a
+
+  endif
+
   pop  de
   pop  af
   pop  bc
@@ -416,5 +463,155 @@ INITMSG:
   db  "(c) 2019 by Konamiman",13,10
   db  13,10
   db  0
+
+
+  if ALLOC_P3
+
+;
+;-----------------------------------------------------------------------
+;
+;       ALLOC allocates specified amount of memory downward from current
+;       HIMEM
+;
+;       Routine borrowed from MSX-DOS2/Nextor:
+;       https://github.com/Konamiman/Nextor/blob/v2.1/source/kernel/bank0/alloc.mac
+;
+; Inputs:
+;       HL = memory size to allocate
+; Outputs:
+;       if successful, carry flag reset, HL points to the beginning
+;                      of allocated area
+;       otherwise, carry flag set, allocation not done.
+;
+BOOTAD	equ	0C000h		;Where boot sector is executed
+;
+BOTTOM	equ	0FC48h		;Pointer to bottom of RAM
+HIMEM	equ	0FC4Ah		;Top address of RAM which can be used
+MEMSIZ	equ	0F672h		;Pointer to end of string space
+STKTOP	equ	0F674h		;Pointer to bottom of stack
+SAVSTK	equ	0F6B1h		;Pointer to valid stack bottom
+MAXFIL	equ	0F85Fh		;Maximum file number
+FILTAB	equ	0F860h		;Pointer to file pointer table
+NULBUF	equ	0F862h		;Pointer to buffer #0
+;
+ALLOC:
+	ld	a,l		;is requested size 0?
+	or	h
+	ret	z		;yes, allocation always succeeds
+	ex	de,hl		;calculate -size
+	ld	hl,0
+	sbc	hl,de
+	ld	c,l		;remember specified size
+	ld	b,h
+	add	hl,sp		;[HL] = [SP] - size
+	ccf
+	ret	c		;size too big
+	ld	a,h
+	cp	high (BOOTAD+512)
+	ret	c		;no room left
+
+	ld	de,(BOTTOM)	;get current RAM bottom
+	sbc	hl,de		;get memory space left after allocation
+	ret	c		;no space left
+	ld	a,h		;do we still have breathing room?
+	cp	high 512
+	ret	c		;no, not enough space left
+;
+;       Now, requested size is legal, begin allocation
+;
+	push	bc		;save -size
+	ld	hl,0
+	add	hl,sp		;get current stack pointer to [HL]
+	ld	e,l		;move source address to [DE]
+	ld	d,h
+	add	hl,bc
+	push	hl		;save destination
+	ld	hl,(STKTOP)
+	or	a
+	sbc	hl,de
+	ld	c,l		;move byte count to move to [BC]
+	ld	b,h
+	inc	bc
+	pop	hl		;restore destination
+	ld	sp,hl		;destination becomes the new SP
+	ex	de,hl
+	ldir			;move stack contents
+	pop	bc		;restore -size
+	ld	hl,(HIMEM)
+	add	hl,bc
+	ld	(HIMEM),hl
+	ld	de,-2*(2+9+256)
+	add	hl,de
+	ld	(FILTAB),hl	;pointer to first FCB
+	ex	de,hl
+	ld	hl,(MEMSIZ)	;update MEMSIZ
+	add	hl,bc
+	ld	(MEMSIZ),hl
+	ld	hl,(NULBUF)	;update NULBUF
+	add	hl,bc
+	ld	(NULBUF),hl
+	ld	hl,(STKTOP)	;update STKTOP
+	add	hl,bc
+
+  if 0 ;Apparently this part of the original code is not needed for our use case
+
+	jr	CLRFCB
+
+;
+;       Re-build BASIC's file structures
+;
+DEFILE:
+	ld	a,1		;load default MAXFIL
+	ld	(MAXFIL),a
+	ld	hl,(HIMEM)
+	ld	de,-2*(256+9+2)
+	add	hl,de
+	ld	(FILTAB),hl	;pointer to first FCB
+	ld	e,l
+	ld	d,h
+	dec	hl
+	dec	hl
+	ld	(MEMSIZ),hl
+	ld	bc,200		;load default string space
+	or	a
+	sbc	hl,bc
+	push	hl		;save new STKTOP
+	ld	hl,2*2+9	;4 for two FCB pointers, 9 for flags
+	add	hl,de
+	ld	(NULBUF),hl
+	pop	hl
+CLRFCB:
+
+  endif
+
+	ld	(STKTOP),hl
+	dec	hl		;and SAVSTK
+	dec	hl
+	ld	(SAVSTK),hl
+	ld	l,e		;get FILTAB in [HL]
+	ld	h,d
+	inc	hl		;point to first FCB
+	inc	hl
+	inc	hl
+	inc	hl
+	ld	a,2
+DSKFLL:
+	ex	de,hl
+	ld	(hl),e		;set address in FILTAB
+	inc	hl
+	ld	(hl),d
+	inc	hl
+	ex	de,hl
+	ld	bc,7
+	ld	(hl),b		;make it look closed
+	add	hl,bc
+	ld	(hl),b		;clear flag byte
+	ld	bc,9+256-7
+	add	hl,bc		;point to next FCB
+	dec	a
+	jr	nz,DSKFLL
+	ret
+
+  endif
 
   ds  0C000h-$  ;Padding to make a 32K ROM
